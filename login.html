@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title>Login</title>
+		<link rel="stylesheet" type="text/css" href="css/weibo.css"/>
+	</head>
+	<body>
+		<div class="login">
+			<h3>登陆</h3>
+			<input class="username" type="text" placeholder="请输入用户名"/>
+			<input class="password" type="password" placeholder="请输入密码"/><br />
+			<input class="btn" type="button" value="登陆"/>
+		</div>
+	</body>
+	<script src="js/jquery-1.11.3.min.js"></script>
+	<script>
+		$('.btn').click(function(){
+			var param = {
+				"username": $('.username').val(),
+				"password": $('.password').val()
+			};
+			if(param.username === "" || param.password === ""){
+	            alert('输入用户名或密码');
+	            return;
+	        }else if(param.username.trim().length === 0 || param.password.trim().length === 0){
+	            alert('用户名或密码不能为空');
+	            return;
+	        }
+			console.log(param);
+			$.ajax({
+				type:"get",
+				url:"login.php",
+				data: param,
+				async:true,
+				success: function(result){
+					window.localStorage.setItem("admin",param.username);
+					window.location.href = "blogtest.html";
+				},
+				error: function(jqXHR, textStatus, errorThrown){
+					console.log(1);
+				}
+			});
+		})
+	</script>
+</html>
