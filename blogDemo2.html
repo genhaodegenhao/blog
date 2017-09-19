@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title>留言</title>
+		<link rel="stylesheet" type="text/css" href="css/weibo.css" />
+	</head>
+	<body>
+		<div id="box">
+			<ul id="fill_in">
+				<li class="login_regist"><a href="loginAndregi.html">登录/注册</a></li>
+				<li class="admin">admin:<span></span></li>
+				<li>内容：<textarea id="txt" placeholder="demo2添加登录和注册事件，只有登录后才可以发布留言"></textarea></li>
+				<li><input id="btn" type="button" value="发布" class="" /></li>
+			</ul>
+			<div id="message_text">
+				<h2>显示留言</h2>
+				<ul id="list"></ul>
+			</div>
+			<div class="more">加载更多...</div>
+		</div>
+	</body>
+	<script src="js/jquery-1.11.3.min.js"></script>
+	<script>
+		var ul = document.getElementById("list");
+		var page = document.getElementById("page");
+		var moretxt = document.getElementById("more");
+		var pageSize = 5;
+		var pageNumber = 0;
+		var boller = true;
+		var userCode = window.localStorage.getItem("admin");
+		//页面加载的时候，从服务器上获取数据，然后显示出来。
+		window.onload = function() {
+			loadMessage();
+			if(userCode){
+				$('.login_regist').hide();
+				$('.admin').show();
+				$('.admin span').text(userCode);
+			}else{
+				$('.admin').hide();
+				$('.login_regist').show();
+			}
+		}
+		$('.more').click(function(){
+			if(boller){
+				pageNumber++;
+				loadMessage();
+			}
+		});
+		function loadMessage() {
+			var param = {
+				"pageNumber": pageNumber,
+				"pageSize": pageSize
+			}
+			$.ajax({
+				type:"get",
+				url:"selectText.php",
+				async:true,
+				data: param,
+				success: function(result){
+					var array = JSON.parse(result); //把返回的值从一个字符串中解析成json对象
+					if(array.length == 0){
+						$('.more').text("没有更多留言了");
+						$('.more').addClass('disabled');
+						boller = false;
+						return boller;
+					}
+					//循环是为了把数据库里的数据全部显示出来		
+					for(i = 0; i < array.length; i++) {
+						var obj = array[i];
+						var li = document.createElement("li");
+						li.setAttribute("data_id", obj.id);
+						var content = obj.message;
+						var time = new Date(obj.ptime * 1000).toLocaleString();
+						var str = "<div class='icon'>admin:&nbsp;&nbsp;"+obj.username+"</div>" + "<p class='textp1'>" + content + "</p>" + "<p class='textp2'><span>" + time + "</span>&nbsp;&nbsp;&nbsp;顶：<a href='javascript:void(0)' id='ding'>"+obj.addcount+"</a>&nbsp;&nbsp;&nbsp;踩：<a href='javascript:void(0)' id='cai'>"+obj.mincount+"</a><a href='javascript:void(0);' id='del'>删除</a></p>";
+					
+						li.innerHTML = str;
+						ul.appendChild(li);
+						var Arr = li.getElementsByTagName("a");
+						//在以上循环中，判断点击的是哪个按钮
+						var del = Arr[2];
+						var cai = Arr[1];
+						var ding = Arr[0];
+						ding.onclick = support;
+						cai.onclick = noSupport;
+						del.onclick = deleteMsg;
+					}
+				},
+			});
+		}
+		//赞
+		function support(){
+			var addcount = parseInt(this.innerHTML)+1;
+			var dataid = this.parentNode.parentNode.getAttribute("data_id");
+			var that = this;
+			var param = {
+				"id": dataid,
+				"addcount": addcount
+			}
+			$.ajax({
+				type:"get",
+				url:"ding.php",
+				async:true,
+				data: param,
+				success: function(result){
+					that.innerHTML = addcount;
+				}
+			});
+		};
+		//踩
+		function noSupport(){
+			var mincount = parseInt(this.innerHTML)+1;
+			var dataid = this.parentNode.parentNode.getAttribute("data_id");
+			var that = this;
+			var param = {
+				"id": dataid,
+				"mincount": mincount
+			}
+			$.ajax({
+				type:"get",
+				url:"cai.php",
+				async:true,
+				data: param,
+				success: function(result){
+					that.innerHTML = mincount;
+				}
+			});
+		};
+		//删除留言
+		function deleteMsg(){
+			var id = this.parentNode.parentNode.getAttribute("data_id");
+			var param = {
+				"id": id
+			}
+			var bol = window.confirm("你确定要删除该留言吗？");
+			if(bol){
+				$.ajax({
+					type:"get",
+					url:"deleter.php",
+					data: param,
+					async:true,
+					success: function(result){
+						var res = $.trim(result);
+						if(res == "删除成功"){
+							ul.innerHTML = "";
+							loadMessage();
+						}
+					}
+				});
+			}
+		}
+
+		//发布
+		function addMessage(org){
+			if($("#txt").val() == "") {
+				alert("请输入内容！");
+			} else {
+				var message = $("#txt").val();
+				var userName = org;
+				var param = {
+					"message": message,
+					"username": userName
+				}
+				$.ajax({
+					type:"get",
+					url:"addBlogMessage.php",
+					data: param,
+					async:true,
+					success: function(result){
+						ul.innerHTML = "";
+						loadMessage();
+					}
+				});
+				$('#txt').val("");
+			}
+		}
+		$('#btn').click(function(){
+			if(userCode){
+				addMessage(userCode);
+			}else{
+				alert("登录后才可以发布留言哦~")
+			}
+		});
+		$('#txt').keyup(function(e){
+			if(e.keyCode == 13){
+				if(userCode){
+					addMessage(userCode);
+				}else{
+					alert("登录后才可以发布留言哦~")
+				}
+			}
+		})
+	</script>
+</html>
